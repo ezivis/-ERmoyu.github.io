@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+<meta charset="UTF-8">
+<title>Connected Device Project1</title>
+<meta charset="UTF-8">
+<style>body {
+    background: white;
+}
+
+.rightofwidth{
+    display: block;
+    position: relative;
+    text-align: center;
+}
+
+.clock {
+text-align: center;
+padding: 50px 0;
+
+font-family: Roboto;
+font-style: normal;
+font-weight: normal;
+font-size: 66px;
+}
+
+.line2{
+text-align: center;
+padding: 10px 0;
+
+font-family: Roboto;
+font-style: normal;
+font-weight: normal;
+font-size: 18px;
+}
+
+.container{
+    background-color: #ffffff;
+    width: 247px;
+    height:64px;
+    position: relative;
+    margin:  50px auto;
+    border-radius: 32px;
+    box-shadow: 0 20px 35px rgba(0,0,0,0.05);
+}
+.container p{
+    text-align: center;
+    margin: 20px 0 30px 0;
+}
+input[type="submit"]{
+    display: none;
+}
+label{
+    display: block;
+    position: relative;
+    /* background-color: #025bee; */
+    color: #4D4D4D;
+    font-size: 18px;
+    font-family: Roboto;
+    border: 2px solid #4D4D4D;
+    font-weight: bold;
+    text-align: center;
+    padding:20px;
+    margin: auto;
+    border-radius: 32px;
+    cursor: pointer;
+}
+label:hover{
+    background-color: #4D4D4D;
+    color: #ffffff;
+}
+
+.pickercenter{
+    width: 247px;
+    height:64px;
+    position: relative;
+    margin:  10px auto;
+}
+
+#canvas_picker{
+    background:white;
+    /* (改变这个颜色改变canvas) */
+    padding: 0;
+    margin: auto;
+    display: block;
+    /* width: 256px;
+    height: 256px; */
+}
+
+#picked span{
+  display:inline-block;
+  padding: 15px;
+  width:50px;
+  height:50px;
+  text-align:center;
+  text-shadow:1px 1px 1px #000;
+  font:8px/50px Arial;
+  color:#fff;
+}
+
+
+#connect{
+    display: block;
+    position: relative;
+    /* background-color: #025bee; */
+    color: BLACK;
+    font-size: 18px;
+    font-family: Roboto;
+    border: 2px solid #4CAF50;
+    font-weight: bold;
+    text-align: center;
+    padding:20px;
+    margin: auto;
+    border-radius: 32px;
+    cursor: pointer;
+  }
+
+  #connect:hover {
+    background-color: #4CAF50;
+    color: white;
+  }
+
+  hr.dotted {
+    border-top: 3px dotted #bbb;
+  }
+  </style>
+</head>
+<body>
+    <div class = "rightofwidth"> 
+        <H1>1st Step: Check if it's connected ^^</H1>
+        <input type="button" id="connect" value="Not Connected">
+        <div id="device"></div>
+        <!-- LED On:<input type="checkbox" id="writeButton" value="Change LED"> -->
+    </div>
+    <br><br><hr class="dotted">
+<div class = "line2"><H1>2nd Step: Hit the Button To Ring</H1><H1>The Tree Bell</H1></div>
+<div class="container">
+    <input type="submit" id="Ring_Bell">
+    <label for="Ring_Bell">Ring The Bell</label>
+</div>
+
+<script>// advertised service UUID of the  to search for:
+    const serviceUuid = '19b10000-e8f2-537e-4f6c-d104768a1214';
+    // DOM elements to interact with:
+    let connectButton;
+    let dataDiv;
+    let deviceDiv;
+    let ledButton;
+    // TODO these could be one JSON object representing the device
+    // and its services and characteristics:
+    let myDevice;
+    let myCharacteristic;
+    
+    
+    // this function is called when the page is loaded. 
+    // event listener functions are initialized here:
+    function setup() {
+      // put the DOM elements into global variables:
+      connectButton = document.getElementById('connect');
+      connectButton.addEventListener('click', connectToBle);
+      ledButton = document.getElementById('Ring_Bell');
+      ledButton.addEventListener('click', writeToCharacteristic);
+      deviceDiv = document.getElementById('device');
+      dataDiv = document.getElementById('data');
+    }
+    
+    // connect to the peripheral:
+    function connectToBle() {
+      // options let you filter for a peripheral 
+      // with a particular service UUID:
+      let options = {
+        filters: [{
+          services: [serviceUuid]
+        }]
+      };
+      // start scanning:
+      navigator.bluetooth.requestDevice(options)
+        // when you get a device:
+        .then(device => {
+          myDevice = device;
+        //   deviceDiv.innerHTML = "Device name: " + device.name;
+        //   deviceDiv.innerHTML += "<br>Service UUID: " + serviceUuid;
+          return device.gatt.connect();
+        })
+        // get the primary service:
+        .then(server => server.getPrimaryService(serviceUuid))
+        .then(service => service.getCharacteristics())
+        // get the characteristics of the service:
+        .then(characteristics => readCharacteristics(characteristics))
+        // if there's an error:
+        .catch(error => console.log('Connection failed!', error));
+    
+      function readCharacteristics(characteristics) {
+        document.getElementById("connect").value="It's Connected";
+        // add the characterisitic UUID to the device div:
+        deviceDiv.innerHTML += "<br>I said it's Connected " ;
+        myCharacteristic = characteristics[0];
+        // Get the initial value:
+        characteristics[0].readValue()
+          .then(data => {
+            let ledState = data.getUint8(0);
+            ledButton.checked = ledState;
+          });
+      }
+    }
+    
+    // write to a characteristic:
+    function writeToCharacteristic() {
+      if (myDevice && myDevice.gatt.connected) {
+    
+        console.log("90");
+        myCharacteristic.writeValue(new Uint8Array([90]));
+      }
+      // alert(zeshu);
+    }
+    
+    // function testme(){
+    //   alert("hello");
+    //   var element = document.getElementById("zeshu");
+    //   alert(element.innerHTML);
+    // }
+    
+    // This is a listener for the page to load.
+    // This is the command that actually starts the script:
+    window.addEventListener('DOMContentLoaded', setup);
+    
+    </script>
+
+</body>
+</html>
